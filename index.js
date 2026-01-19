@@ -1,8 +1,8 @@
-const { Client, LocalAuth } = require('whatsapp-web.js');
+const { Client, LocalAuth, NoAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 const config = require('./config');
 const { handleFlightInquiry, isUserInFlightFlow, BOT_PROMPTS } = require('./features/flightInquiry');
-const { handleQuestion, isUserInQuestionFlow } = require('./features/questionHandler');
+const { handleQuestion, isUserInQuestionFlow, QUESTION_PROMPTS } = require('./features/questionHandler');
 const { handleAutoResponse } = require('./features/autoResponse');
 const { setupBroadcasts } = require('./features/broadcast');
 
@@ -29,7 +29,11 @@ const client = new Client({
             '--no-zygote',
             '--disable-gpu'
         ]
-    }
+    },
+    webVersionCache: {
+        type: 'remote',
+        remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.2412.54.html',
+    },
 });
 
 client.on('qr', (qr) => {
@@ -56,7 +60,7 @@ client.on('ready', async () => {
             const adminId = config.ADMIN_NUMBER.includes('@') ? config.ADMIN_NUMBER : `${config.ADMIN_NUMBER}@c.us`;
             console.log(`Attempting to send startup message to: ${adminId}`);
             try {
-                const msg = await client.sendMessage(adminId, '🤖 B6 Bot is now online and connected!');
+                const msg = await client.sendMessage(adminId, '🤖 B6 Bot is now online and connected!', { sendSeen: false });
                 console.log(`✅ Startup message sent to admin. Message ID: ${msg.id._serialized}`);
             } catch (err) {
                 console.error('❌ Failed to send startup message to admin:', err);
@@ -78,7 +82,7 @@ client.on('ready', async () => {
                                  '❓ *!question* - View Rider Rules, Priority List & Roster\n' +
                                  '🏓 *!ping* - Check if bot is active';
                 
-                await group.sendMessage(startupMsg);
+                await group.sendMessage(startupMsg, { sendSeen: false });
                 console.log(`✅ Startup message sent to group: ${config.GROUP_NAME}`);
             } else {
                 console.log(`⚠️ Could not find group: "${config.GROUP_NAME}"`);
@@ -99,7 +103,8 @@ client.on('message_create', async msg => {
     // but NOT the bot's own prompt messages.
     if (msg.fromMe) {
         // 1. Ignore if it matches known Bot Prompts (prevents infinite loops)
-        if (BOT_PROMPTS.some(prompt => msg.body.includes(prompt))) {
+        if (BOT_PROMPTS.some(prompt => msg.body.includes(prompt)) || 
+            QUESTION_PROMPTS.some(prompt => msg.body.includes(prompt))) {
             return;
         }
         if (msg.body.includes('🤖 B6 Bot is online')) return;
@@ -111,7 +116,7 @@ client.on('message_create', async msg => {
             // Process command below
         } 
         // 3. Allow Flow Input if user is in a flow
-        else if (isUserInFlightFlow(msg.author || msg.from)) {
+        else if (isUserInFlightFlow(msg.author || msg.from) || isUserInQuestionFlow(msg.author || msg.from)) {
             // Process flow below
         }
         // 4. Otherwise ignore (don't auto-respond to random self-messages)

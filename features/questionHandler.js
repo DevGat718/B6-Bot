@@ -5,8 +5,19 @@ const userState = {};
 
 const STEPS = {
     START: 0,
-    MENU_SELECTION: 1
+    MENU_SELECTION: 1,
+    RULE_SELECTION: 2
 };
+
+// Prompts to ignore if sent by the bot
+const QUESTION_PROMPTS = [
+    '❓ **Rider Support**',
+    'What would you like to know?',
+    '📜 **Rider Rules Topics**',
+    '📋 **Priority Codes Breakdown**',
+    '✈️ **Rider Roster & Priority**',
+    'Reply with the *number* or *keyword*'
+];
 
 const formatPriorityList = () => {
     let message = '📋 **Priority Codes Breakdown**:\n\n';
@@ -68,13 +79,16 @@ const handleQuestion = async (client, msg) => {
 
     // Check if user is in a flow
     if (userState[userId] === STEPS.MENU_SELECTION) {
-        if (text === '1' || text.toLowerCase().includes('rule')) {
+        console.log(`[Question Flow] User ${userId} selected: "${text}"`);
+
+        if (text === '1' || text.startsWith('1') || text.toLowerCase().includes('rule')) {
             await msg.reply(formatRulesMenu());
-            delete userState[userId]; 
-        } else if (text === '2' || text.toLowerCase().includes('code')) {
+            userState[userId] = STEPS.RULE_SELECTION; // Wait for rule selection
+            return;
+        } else if (text === '2' || text.startsWith('2') || text.toLowerCase().includes('code')) {
             await msg.reply(formatPriorityList());
             delete userState[userId];
-        } else if (text === '3' || text.toLowerCase().includes('roster') || text.toLowerCase().includes('name')) {
+        } else if (text === '3' || text.startsWith('3') || text.toLowerCase().includes('roster') || text.toLowerCase().includes('name')) {
             await msg.reply(formatRiderRoster());
             delete userState[userId];
         } else {
@@ -87,8 +101,32 @@ const handleQuestion = async (client, msg) => {
                 await msg.reply(matchedRule.content);
                 delete userState[userId];
             } else {
-                await msg.reply('❌ Invalid option. Please reply with `1`, `2`, or `3`.');
+                await msg.reply('❌ Invalid option. Please reply with `1`, `2`, or `3`.\nOr type a keyword like "Dress Code".');
             }
+        }
+        return;
+    }
+
+    // Check if user is selecting a specific rule (Step 2)
+    if (userState[userId] === STEPS.RULE_SELECTION) {
+        const selection = parseInt(text);
+        let matchedRule;
+
+        if (!isNaN(selection) && selection > 0 && selection <= rules.length) {
+            // User replied with a number (1-6)
+            matchedRule = rules[selection - 1];
+        } else {
+            // User replied with a keyword
+            matchedRule = rules.find(r => 
+                r.keywords.some(k => text.toLowerCase().includes(k))
+            );
+        }
+
+        if (matchedRule) {
+            await msg.reply(matchedRule.content);
+            delete userState[userId];
+        } else {
+            await msg.reply(`❌ Invalid rule selection. Please reply with a number 1-${rules.length} or a keyword.`);
         }
         return;
     }
@@ -128,5 +166,6 @@ const isUserInQuestionFlow = (userId) => {
 
 module.exports = {
     handleQuestion,
-    isUserInQuestionFlow
+    isUserInQuestionFlow,
+    QUESTION_PROMPTS
 };
