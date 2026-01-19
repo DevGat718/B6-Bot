@@ -25,7 +25,7 @@ const setupBroadcasts = (client) => {
                 const group = chats.find(chat => chat.isGroup && chat.name.trim() === config.GROUP_NAME.trim());
 
                 if (group) {
-                    await group.sendMessage(broadcast.message);
+                    await group.sendMessage(broadcast.message, { sendSeen: false });
                     console.log(`✅ Broadcast sent to ${config.GROUP_NAME}`);
                 } else {
                     console.log(`⚠️ Group "${config.GROUP_NAME}" not found. Could not send broadcast.`);

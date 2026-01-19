@@ -93,8 +93,19 @@ client.on('ready', async () => {
     }, 7000);
 });
 
+const processedMessages = new Set();
+
 // Use message_create to catch all messages, including those sent by the bot/user itself
 client.on('message_create', async msg => {
+    // Prevent handling the same message multiple times
+    if (processedMessages.has(msg.id._serialized)) return;
+    processedMessages.add(msg.id._serialized);
+    
+    // Clear cache periodically to prevent memory leaks
+    if (processedMessages.size > 1000) {
+        processedMessages.clear();
+    }
+
     // Log for debugging
     console.log(`MSG: ${msg.body} | From: ${msg.from} | Author: ${msg.author} | FromMe: ${msg.fromMe}`);
 
@@ -102,27 +113,10 @@ client.on('message_create', async msg => {
     // If it's from ME, we need to check if it's a command OR user input, 
     // but NOT the bot's own prompt messages.
     if (msg.fromMe) {
-        // 1. Ignore if it matches known Bot Prompts (prevents infinite loops)
-        if (BOT_PROMPTS.some(prompt => msg.body.includes(prompt)) || 
-            QUESTION_PROMPTS.some(prompt => msg.body.includes(prompt))) {
-            return;
-        }
-        if (msg.body.includes('🤖 B6 Bot is online')) return;
-        if (msg.body === 'pong') return;
-        if (msg.body.startsWith('New Flight Inquiry:')) return;
-        
-        // 2. Allow commands
-        if (msg.body.toLowerCase().startsWith('!')) {
-            // Process command below
-        } 
-        // 3. Allow Flow Input if user is in a flow
-        else if (isUserInFlightFlow(msg.author || msg.from) || isUserInQuestionFlow(msg.author || msg.from)) {
-            // Process flow below
-        }
-        // 4. Otherwise ignore (don't auto-respond to random self-messages)
-        else {
-            return;
-        }
+        // ALWAYS IGNORE ALL MESSAGES FROM SELF
+        // This is the safest way to prevent loops.
+        // We only allowed self-commands for testing, but it's causing production loops.
+        return;
     }
 
     // Determine the user ID (Author in group, From in private)
@@ -140,7 +134,7 @@ client.on('message_create', async msg => {
 
     // 2. Command handling
     if (msg.body.toLowerCase() === '!ping') {
-        await msg.reply('pong');
+        await msg.reply('pong', null, { sendSeen: false });
     } else if (msg.body.toLowerCase() === '!flight') {
         await handleFlightInquiry(client, msg); // Start the flow
     } else if (msg.body.toLowerCase().startsWith('!question')) {

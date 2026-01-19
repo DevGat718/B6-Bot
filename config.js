@@ -7,7 +7,7 @@ module.exports = {
     BROADCASTS: [
         {
             schedule: '0 9 * * *', // 9:00 AM Daily
-            message: 'Good morning B6 Pass Riders! ☀️\nHope everyone has safe travels today.'
+            message: 'Good morning B6 Pass Riders! ☀️\nHope everyone has a great day & safe travels today. We also have 1 RG slot open still!'
         },
         {
             schedule: '0 18 * * 5', // 6:00 PM Fridays

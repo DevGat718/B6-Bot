@@ -11,7 +11,7 @@ const handleAutoResponse = async (client, msg) => {
     // Simple keyword matching
     for (const [keyword, response] of Object.entries(autoResponses)) {
         if (messageBody.includes(keyword)) {
-            await msg.reply(response);
+            await msg.reply(response, null, { sendSeen: false });
             return; // Respond to the first match only
         }
     }

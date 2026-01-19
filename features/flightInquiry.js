@@ -38,25 +38,25 @@ const handleFlightInquiry = async (client, msg) => {
 
     switch (currentState.step) {
         case STEPS.START:
-            await msg.reply('Welcome to the Flight Inquiry Service. Please enter your full name:');
+            await msg.reply('Welcome to the Flight Inquiry Service. Please enter your full name:', null, { sendSeen: false });
             currentState.step = STEPS.NAME;
             break;
 
         case STEPS.NAME:
             currentState.data.name = msg.body;
-            await msg.reply('Thanks! What are your travel dates?');
+            await msg.reply('Thanks! What are your travel dates?', null, { sendSeen: false });
             currentState.step = STEPS.DATES;
             break;
 
         case STEPS.DATES:
             currentState.data.dates = msg.body;
-            await msg.reply('Got it. Where are you traveling from and to? (e.g., JFK to LAX)');
+            await msg.reply('Got it. Where are you traveling from and to? (e.g., JFK to LAX)', null, { sendSeen: false });
             currentState.step = STEPS.ROUTE;
             break;
 
         case STEPS.ROUTE:
             currentState.data.route = msg.body;
-            await msg.reply('Noted. Do you have any specific flights in mind? (If none, just type "No" or "Any")');
+            await msg.reply('Noted. Do you have any specific flights in mind? (If none, just type "No" or "Any")', null, { sendSeen: false });
             currentState.step = STEPS.FLIGHTS;
             break;
 
@@ -70,13 +70,13 @@ const handleFlightInquiry = async (client, msg) => {
                           `🛫 Route: ${currentState.data.route}\n` +
                           `✈️ Specific Flights: ${currentState.data.flights}`;
             
-            await msg.reply(`Thank you! Your inquiry has been sent to the admin.\n\nSummary:\n${summary}`);
+            await msg.reply(`Thank you! Your inquiry has been sent to the admin.\n\nSummary:\n${summary}`, null, { sendSeen: false });
             
             // Send to Admin
             if (config.ADMIN_NUMBER) {
                 // Ensure the number format is correct (suffix @c.us for contacts)
                 const adminId = config.ADMIN_NUMBER.includes('@') ? config.ADMIN_NUMBER : `${config.ADMIN_NUMBER}@c.us`;
-                await client.sendMessage(adminId, summary);
+                await client.sendMessage(adminId, summary, { sendSeen: false });
             } else {
                 console.log('ADMIN_NUMBER not set in config, could not send inquiry.');
             }

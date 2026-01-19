@@ -29,6 +29,11 @@ module.exports = {
             topic: 'General Info',
             keywords: ['standby', 'website', 'seat', 'check', 'jetblue'],
             content: 'ℹ️ **General Info**:\n• All flights are **STANDBY** on JetBlue Airways (B6) only.\n• Check destinations at [www.jetblue.com](https://www.jetblue.com).\n• Text in the chat if you need a seat availability check.'
+        },
+        {
+            topic: 'Standby Travel 101',
+            keywords: ['101', 'guide', 'behavior', 'gate', 'early', 'guaranteed', 'rank'],
+            content: '✈️ **STANDBY TRAVEL 101**\n_What You Need to Know to Get on the Plane (and Not Blow It)_\n\n**1. YOU\'RE NOT GUARANTEED A SEAT**\nYou\'re in line for leftover seats. Paying passengers go first. Mentality: Hope for the best, be ready to move.\n\n**2. YOU\'RE RANKED ON A STANDBY LIST**\nBased on priority, check-in time, and sponsor. This list can shift—pay attention.\n\n**3. ARRIVE EARLY, STAY PRESENT**\nArrive 90-120 mins early. Check in. Stay by the gate. If you\'re not there when called, you\'re skipped.\n\n**4. WHAT HAPPENS AT THE GATE**\nAgents call names when seats open. Move fast. You get whatever seat is left (no requests).\n\n**5. BEHAVIOR MATTERS**\n✅ **DO**: Be polite, grateful, dress clean, say thank you.\n❌ **DON\'T**: Act entitled, wear pajamas/slides, argue, or film staff.\n\n⚠️ **WARNING**: JetBlue can revoke privileges if you act up.'
         }
     ],
     priorityList: [
@@ -87,9 +92,8 @@ module.exports = {
             '3. Daisean R. / S6.PRM2',
             '4. Kayvon R. / S6.PRM2',
             '5. Tad W. / S6.PRM2',
-            '6. Tad W. / S6.PRM2',
-            '7. Steve O. / S6.STND1',
-            '8. Thifa T. / S6.STND1'
+            '6. Steve O. / S6.STND1',
+            '7. Thifa T. / S6.STND1'
         ],
         dmgGroup: [
             '* Jiggy M. / S6.PRM2',
