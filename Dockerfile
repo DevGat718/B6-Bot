@@ -19,6 +19,10 @@ COPY package*.json ./
 # Install dependencies
 RUN npm ci
 
+# Set Puppeteer environment variables to use installed Chrome
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
+    PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome-stable
+
 # Copy source code
 COPY . .
 
