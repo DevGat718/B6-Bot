@@ -22,5 +22,8 @@ RUN npm ci
 # Copy source code
 COPY . .
 
+# Expose port 3000
+EXPOSE 3000
+
 # Start the bot
 CMD [ "npm", "start" ]
