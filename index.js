@@ -38,6 +38,11 @@ const client = new Client({
 
 client.on('qr', (qr) => {
     console.log('QR RECEIVED', qr);
+    console.log('--- If the QR code below is not scanning ---');
+    console.log('1. Copy the long string above starting with "2@"');
+    console.log('2. Go to https://chbrown.github.io/qrcode-2/ or any QR generator');
+    console.log('3. Paste the string and generate the QR code to scan');
+    console.log('--------------------------------------------');
     qrcode.generate(qr, { small: true });
     console.log('Please scan the QR code above with WhatsApp.');
 });
