@@ -30,6 +30,8 @@ app.get('/', async (req, res) => {
                             <h1>Scan QR Code to Login</h1>
                             <img src="${url}" alt="QR Code" style="width:300px;height:300px;"/>
                             <p>Refresh page if code expires.</p>
+                            <hr/>
+                            <p style="font-size: 12px; color: #666;">Raw Code (if image fails): <br/> <textarea rows="4" cols="50">${qrCodeData}</textarea></p>
                         </div>
                     </body>
                 </html>
@@ -50,6 +52,10 @@ app.get('/', async (req, res) => {
             </html>
         `);
     }
+});
+
+app.get('/health', (req, res) => {
+    res.status(200).send('OK');
 });
 
 app.listen(port, '0.0.0.0', () => {
@@ -78,7 +84,9 @@ const client = new Client({
             '--disable-accelerated-2d-canvas',
             '--no-first-run',
             '--no-zygote',
-            '--disable-gpu'
+            '--disable-gpu',
+            '--disable-extensions',
+            '--disable-software-rasterizer'
         ]
     },
     webVersionCache: {
@@ -93,6 +101,9 @@ client.on('qr', (qr) => {
     console.log('--- If the QR code below is not scanning ---');
     console.log('1. Open your app URL (e.g., https://your-app.up.railway.app)');
     console.log('2. Or copy the long string above starting with "2@" and use a generator');
+    console.log('3. RAW QR DATA START');
+    console.log(qr);
+    console.log('RAW QR DATA END');
     console.log('--------------------------------------------');
     qrcodeTerminal.generate(qr, { small: true });
 });
