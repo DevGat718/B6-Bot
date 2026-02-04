@@ -4,63 +4,92 @@ const express = require('express');
 const QRCode = require('qrcode');
 const config = require('./config');
 
+// --- 1. Start Web Server IMMEDIATELY (Critical for Railway Health Check) ---
 const app = express();
 const port = process.env.PORT || 3000;
 
 let qrCodeData = null; // Store the latest QR code string for the web view
+let clientStatus = 'Initializing...';
+let lastError = null;
 
+app.get('/', async (req, res) => {
+    let htmlContent = `
+        <html>
+            <head>
+                <title>B6 Bot Status</title>
+                <meta http-equiv="refresh" content="10">
+                <style>
+                    body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; background: #f0f2f5; flex-direction: column; }
+                    .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); text-align: center; max-width: 500px; width: 90%; }
+                    .status { font-weight: bold; color: #333; margin-bottom: 10px; }
+                    textarea { width: 100%; font-family: monospace; font-size: 10px; }
+                    .error { color: red; background: #fee; padding: 10px; border-radius: 5px; margin-top: 10px; word-break: break-word; }
+                </style>
+            </head>
+            <body>
+                <div class="card">
+                    <h1>B6 Bot Dashboard</h1>
+                    <div class="status">Status: ${clientStatus}</div>
+    `;
+
+    if (qrCodeData) {
+        try {
+            const url = await QRCode.toDataURL(qrCodeData);
+            htmlContent += `
+                <h2>Scan QR Code to Login</h2>
+                <img src="${url}" alt="QR Code" style="width:250px;height:250px;"/>
+                <p>Refresh page if code expires.</p>
+                <hr/>
+                <p style="font-size: 12px; color: #666;">Raw Code (copy this if image fails):</p>
+                <textarea rows="6" readonly onclick="this.select()">${qrCodeData}</textarea>
+            `;
+        } catch (err) {
+            htmlContent += `<p class="error">Error generating QR Image: ${err.message}</p>`;
+        }
+    } else if (clientStatus === 'Ready') {
+         htmlContent += `<p>✅ Bot is connected and running!</p>`;
+    }
+
+    if (lastError) {
+        htmlContent += `
+            <div class="error">
+                <strong>Last Error:</strong><br/>
+                ${lastError}
+            </div>
+        `;
+    }
+
+    htmlContent += `
+                </div>
+            </body>
+        </html>
+    `;
+    res.send(htmlContent);
+});
+
+app.get('/health', (req, res) => res.status(200).send('OK'));
+
+app.listen(port, '0.0.0.0', () => {
+    console.log(`✅ Web server running on port ${port}`);
+});
+
+// --- 2. Global Error Handlers (Prevent App Crash) ---
+process.on('uncaughtException', (err) => {
+    console.error('CRITICAL: Uncaught Exception:', err);
+    lastError = err.toString();
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('CRITICAL: Unhandled Rejection:', reason);
+    lastError = reason.toString();
+});
+
+
+// --- 3. Bot Logic ---
 const { handleFlightInquiry, isUserInFlightFlow, BOT_PROMPTS } = require('./features/flightInquiry');
 const { handleQuestion, isUserInQuestionFlow, QUESTION_PROMPTS } = require('./features/questionHandler');
 const { handleAutoResponse } = require('./features/autoResponse');
 const { setupBroadcasts } = require('./features/broadcast');
-
-// --- Web Server for QR Code Display (Railway Support) ---
-app.get('/', async (req, res) => {
-    if (qrCodeData) {
-        try {
-            const url = await QRCode.toDataURL(qrCodeData);
-            res.send(`
-                <html>
-                    <head>
-                        <title>B6 Bot QR Code</title>
-                        <meta http-equiv="refresh" content="20">
-                    </head>
-                    <body style="display:flex;justify-content:center;align-items:center;height:100vh;flex-direction:column;font-family:sans-serif;background-color:#f0f2f5;">
-                        <div style="background:white;padding:20px;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,0.1);text-align:center;">
-                            <h1>Scan QR Code to Login</h1>
-                            <img src="${url}" alt="QR Code" style="width:300px;height:300px;"/>
-                            <p>Refresh page if code expires.</p>
-                            <hr/>
-                            <p style="font-size: 12px; color: #666;">Raw Code (if image fails): <br/> <textarea rows="4" cols="50">${qrCodeData}</textarea></p>
-                        </div>
-                    </body>
-                </html>
-            `);
-        } catch (err) {
-            res.status(500).send('Error generating QR code');
-        }
-    } else {
-        res.send(`
-            <html>
-                <head><title>B6 Bot Status</title></head>
-                <body style="display:flex;justify-content:center;align-items:center;height:100vh;font-family:sans-serif;background-color:#f0f2f5;">
-                     <div style="background:white;padding:20px;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,0.1);text-align:center;">
-                        <h1>Bot is Online / Connected</h1>
-                        <p>If you see this, the bot is running.</p>
-                    </div>
-                </body>
-            </html>
-        `);
-    }
-});
-
-app.get('/health', (req, res) => {
-    res.status(200).send('OK');
-});
-
-app.listen(port, '0.0.0.0', () => {
-    console.log(`Web server running on port ${port}`);
-});
 
 // Debug Configuration
 console.log('--- Configuration Debug ---');
@@ -96,69 +125,42 @@ const client = new Client({
 });
 
 client.on('qr', (qr) => {
-    qrCodeData = qr; // Update web view variable
-    console.log('QR RECEIVED', qr);
-    console.log('--- If the QR code below is not scanning ---');
-    console.log('1. Open your app URL (e.g., https://your-app.up.railway.app)');
-    console.log('2. Or copy the long string above starting with "2@" and use a generator');
-    console.log('3. RAW QR DATA START');
-    console.log(qr);
-    console.log('RAW QR DATA END');
-    console.log('--------------------------------------------');
+    qrCodeData = qr; 
+    clientStatus = 'Waiting for QR Scan';
+    console.log('QR RECEIVED');
     qrcodeTerminal.generate(qr, { small: true });
 });
 
 
 client.on('auth_failure', msg => {
     console.error('AUTHENTICATION FAILURE', msg);
+    clientStatus = 'Auth Failure: ' + msg;
+    lastError = 'Auth Failure: ' + msg;
 });
 
 client.on('loading_screen', (percent, message) => {
     console.log('LOADING SCREEN', percent, message);
+    clientStatus = `Loading: ${percent}% ${message || ''}`;
 });
 
 client.on('ready', async () => {
     console.log('Client is ready!');
-    qrCodeData = null; // Clear QR code when connected
+    qrCodeData = null; 
+    clientStatus = 'Ready';
+    lastError = null;
     setupBroadcasts(client);
 
-    // Notify Admin that bot is online (with a small delay to ensure connection is stable)
+    // Notify Admin
     if (config.ADMIN_NUMBER) {
         setTimeout(async () => {
             const adminId = config.ADMIN_NUMBER.includes('@') ? config.ADMIN_NUMBER : `${config.ADMIN_NUMBER}@c.us`;
-            console.log(`Attempting to send startup message to: ${adminId}`);
             try {
-                const msg = await client.sendMessage(adminId, '🤖 B6 Bot is now online and connected!', { sendSeen: false });
-                console.log(`✅ Startup message sent to admin. Message ID: ${msg.id._serialized}`);
+                await client.sendMessage(adminId, '🤖 B6 Bot is now online and connected!', { sendSeen: false });
             } catch (err) {
-                console.error('❌ Failed to send startup message to admin:', err);
+                console.error('Failed to send startup message:', err);
             }
-        }, 5000); // 5 second delay
+        }, 5000);
     }
-
-    // Also try to say hello to the group
-    setTimeout(async () => {
-        try {
-            const chats = await client.getChats();
-            console.log('Available Groups:', chats.filter(c => c.isGroup).map(c => c.name));
-            
-            const group = chats.find(chat => chat.isGroup && chat.name.trim() === config.GROUP_NAME.trim());
-            if (group) {
-                const startupMsg = '🤖 *B6 Bot is Online!*\n\n' +
-                                 'Here are the available commands:\n' +
-                                 '✈️ *!flight* - Start a flight load inquiry\n' +
-                                 '❓ *!question* - View Rider Rules, Priority List & Roster\n' +
-                                 '🏓 *!ping* - Check if bot is active';
-                
-                await group.sendMessage(startupMsg, { sendSeen: false });
-                console.log(`✅ Startup message sent to group: ${config.GROUP_NAME}`);
-            } else {
-                console.log(`⚠️ Could not find group: "${config.GROUP_NAME}"`);
-            }
-        } catch (err) {
-            console.error('Error finding group:', err);
-        }
-    }, 7000);
 });
 
 const processedMessages = new Set();
@@ -215,4 +217,9 @@ client.on('message_create', async msg => {
     }
 });
 
-client.initialize().catch(err => console.error('Initialization error:', err));
+console.log('Initializing Client...');
+client.initialize().catch(err => {
+    console.error('Initialization error:', err);
+    lastError = 'Init Error: ' + err.toString();
+    clientStatus = 'Crashed during Init';
+});
