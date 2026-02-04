@@ -159,17 +159,45 @@ client.on('ready', async () => {
     lastError = null;
     setupBroadcasts(client);
 
-    // Notify Admin
+    // 1. Notify Admin
     if (config.ADMIN_NUMBER) {
         setTimeout(async () => {
             const adminId = config.ADMIN_NUMBER.includes('@') ? config.ADMIN_NUMBER : `${config.ADMIN_NUMBER}@c.us`;
             try {
                 await client.sendMessage(adminId, '🤖 B6 Bot is now online and connected!', { sendSeen: false });
+                console.log('✅ Startup message sent to Admin');
             } catch (err) {
-                console.error('Failed to send startup message:', err);
+                console.error('Failed to send startup message to Admin:', err);
+                lastError = `Admin Msg Error: ${err.message}`;
             }
-        }, 5000);
+        }, 3000);
     }
+
+    // 2. Notify Group
+    setTimeout(async () => {
+        try {
+            const chats = await client.getChats();
+            console.log('Available Groups:', chats.filter(c => c.isGroup).map(c => c.name));
+            
+            const group = chats.find(chat => chat.isGroup && chat.name.trim() === config.GROUP_NAME.trim());
+            if (group) {
+                const startupMsg = '🤖 *B6 Bot is Online!*\n\n' +
+                                 'Here are the available commands:\n' +
+                                 '✈️ *!flight* - Start a flight load inquiry\n' +
+                                 '❓ *!question* - View Rider Rules, Priority List & Roster\n' +
+                                 '🏓 *!ping* - Check if bot is active';
+                
+                await group.sendMessage(startupMsg, { sendSeen: false });
+                console.log(`✅ Startup message sent to group: ${config.GROUP_NAME}`);
+            } else {
+                console.log(`⚠️ Could not find group: "${config.GROUP_NAME}"`);
+                lastError = `Group "${config.GROUP_NAME}" not found. Check exact name.`;
+            }
+        } catch (err) {
+            console.error('Error finding group:', err);
+            lastError = `Group Error: ${err.message}`;
+        }
+    }, 6000);
 });
 
 const processedMessages = new Set();
