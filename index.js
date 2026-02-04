@@ -1,10 +1,60 @@
 const { Client, LocalAuth, NoAuth } = require('whatsapp-web.js');
-const qrcode = require('qrcode-terminal');
+const qrcodeTerminal = require('qrcode-terminal');
+const express = require('express');
+const QRCode = require('qrcode');
 const config = require('./config');
+
+const app = express();
+const port = process.env.PORT || 3000;
+
+let qrCodeData = null; // Store the latest QR code string for the web view
+
 const { handleFlightInquiry, isUserInFlightFlow, BOT_PROMPTS } = require('./features/flightInquiry');
 const { handleQuestion, isUserInQuestionFlow, QUESTION_PROMPTS } = require('./features/questionHandler');
 const { handleAutoResponse } = require('./features/autoResponse');
 const { setupBroadcasts } = require('./features/broadcast');
+
+// --- Web Server for QR Code Display (Railway Support) ---
+app.get('/', async (req, res) => {
+    if (qrCodeData) {
+        try {
+            const url = await QRCode.toDataURL(qrCodeData);
+            res.send(`
+                <html>
+                    <head>
+                        <title>B6 Bot QR Code</title>
+                        <meta http-equiv="refresh" content="20">
+                    </head>
+                    <body style="display:flex;justify-content:center;align-items:center;height:100vh;flex-direction:column;font-family:sans-serif;background-color:#f0f2f5;">
+                        <div style="background:white;padding:20px;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,0.1);text-align:center;">
+                            <h1>Scan QR Code to Login</h1>
+                            <img src="${url}" alt="QR Code" style="width:300px;height:300px;"/>
+                            <p>Refresh page if code expires.</p>
+                        </div>
+                    </body>
+                </html>
+            `);
+        } catch (err) {
+            res.status(500).send('Error generating QR code');
+        }
+    } else {
+        res.send(`
+            <html>
+                <head><title>B6 Bot Status</title></head>
+                <body style="display:flex;justify-content:center;align-items:center;height:100vh;font-family:sans-serif;background-color:#f0f2f5;">
+                     <div style="background:white;padding:20px;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,0.1);text-align:center;">
+                        <h1>Bot is Online / Connected</h1>
+                        <p>If you see this, the bot is running.</p>
+                    </div>
+                </body>
+            </html>
+        `);
+    }
+});
+
+app.listen(port, () => {
+    console.log(`Web server running on port ${port}`);
+});
 
 // Debug Configuration
 console.log('--- Configuration Debug ---');
@@ -37,15 +87,15 @@ const client = new Client({
 });
 
 client.on('qr', (qr) => {
+    qrCodeData = qr; // Update web view variable
     console.log('QR RECEIVED', qr);
     console.log('--- If the QR code below is not scanning ---');
-    console.log('1. Copy the long string above starting with "2@"');
-    console.log('2. Go to https://chbrown.github.io/qrcode-2/ or any QR generator');
-    console.log('3. Paste the string and generate the QR code to scan');
+    console.log('1. Open your app URL (e.g., https://your-app.up.railway.app)');
+    console.log('2. Or copy the long string above starting with "2@" and use a generator');
     console.log('--------------------------------------------');
-    qrcode.generate(qr, { small: true });
-    console.log('Please scan the QR code above with WhatsApp.');
+    qrcodeTerminal.generate(qr, { small: true });
 });
+
 
 client.on('auth_failure', msg => {
     console.error('AUTHENTICATION FAILURE', msg);
@@ -57,6 +107,7 @@ client.on('loading_screen', (percent, message) => {
 
 client.on('ready', async () => {
     console.log('Client is ready!');
+    qrCodeData = null; // Clear QR code when connected
     setupBroadcasts(client);
 
     // Notify Admin that bot is online (with a small delay to ensure connection is stable)
