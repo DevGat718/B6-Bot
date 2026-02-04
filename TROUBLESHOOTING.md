@@ -112,3 +112,26 @@ Always run a cleanup command before starting:
 
 **Tip:**
 If the bot won't start, kill the terminal and run the cleanup command manually.
+
+---
+
+## ☁️ Cloud Deployment: Invalid QR Code in Logs
+
+**Issue:**
+When deploying to cloud platforms (like Railway, Heroku, etc.), the QR code printed in the terminal logs appears broken, wrapped, or corrupted, making it impossible to scan with the WhatsApp app.
+
+**Cause:**
+Cloud terminal logs often handle ASCII characters and line breaks differently than local terminals, distorting the large QR code block.
+
+**Fix (Implemented):**
+We added a minimal **Express Web Server** to the bot (`index.js`).
+
+1. **How it works:** The bot now listens on a web port (e.g., 3000) and serves a simple HTML page.
+2. **How to connect:**
+   - Deploy the bot.
+   - Open the **Public Domain** provided by your cloud host (e.g., `https://your-bot.up.railway.app`).
+   - The QR code will be displayed clearly on the webpage.
+   - Scan it to login.
+
+**Code Reference:**
+See the `app.get('/', ...)` section in `index.js`.
