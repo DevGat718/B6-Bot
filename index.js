@@ -59,6 +59,15 @@ app.get('/', async (req, res) => {
         `;
     }
 
+    if (!config.ADMIN_NUMBER) {
+        htmlContent += `
+            <div class="error" style="background: #fff3cd; color: #856404;">
+                <strong>⚠️ Warning:</strong> ADMIN_NUMBER is not set in Railway variables.<br/>
+                You will NOT receive a startup message.
+            </div>
+        `;
+    }
+
     htmlContent += `
                 </div>
             </body>
